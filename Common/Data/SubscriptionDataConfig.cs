@@ -264,7 +264,11 @@ namespace QuantConnect.Data
         {
             PriceScaleFactor = config.PriceScaleFactor;
             SumOfDividends = config.SumOfDividends;
-            Consolidators = config.Consolidators;
+
+            foreach (var consolidator in config.Consolidators)
+            {
+                Consolidators.Add(consolidator);
+            }
         }
 
         /// <summary>

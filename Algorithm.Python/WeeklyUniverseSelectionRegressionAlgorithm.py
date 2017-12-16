@@ -32,10 +32,14 @@ class WeeklyUniverseSelectionRegressionAlgorithm(QCAlgorithm):
         self.SetStartDate(2013,10,1)
         self.SetEndDate(2013,10,31)
 
-        self.UniverseSettings.Resolution = Resolution.Hour
+        self.ibm = Symbol.Create("IBM", SecurityType.Equity, Market.USA)
 
+        self.UniverseSettings.Resolution = Resolution.Hour
+        self.AddUniverse(self.CoarseSelectionFunction)
+
+    def CoarseSelectionFunction(self, coarse):
         # select IBM once a week, empty universe the other days
-        self.AddUniverse("my-custom-universe", lambda dt: ["IBM"] if dt.day % 7 == 0 else [])
+        return [ self.ibm ] if self.Time.day % 7 == 0 else [ ]
 
     def OnData(self, slice):
         if self.changes == None: return
@@ -53,6 +57,7 @@ class WeeklyUniverseSelectionRegressionAlgorithm(QCAlgorithm):
                 self.SetHoldings(security.Symbol, 1)
 
         self.changes = None
+
 
     def OnSecuritiesChanged(self, changes):
         self.changes = changes

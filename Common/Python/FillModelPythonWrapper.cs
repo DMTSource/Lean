@@ -37,7 +37,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Limit Fill Model. Return an order event with the fill details.
+        /// Wrapper for <see cref = "IFillModel.LimitFill(Security, LimitOrder)" /> in Python
         /// </summary>
         /// <param name="asset">Stock Object to use to help model limit fill</param>
         /// <param name="order">Order to fill. Alter the values directly if filled.</param>
@@ -51,7 +51,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Model the slippage on a market order: fixed percentage of order price
+        /// Wrapper for <see cref = "IFillModel.MarketFill(Security, MarketOrder)" /> in Python
         /// </summary>
         /// <param name="asset">Asset we're trading this order</param>
         /// <param name="order">Order to update</param>
@@ -65,7 +65,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Market on Close Fill Model. Return an order event with the fill details
+        /// Wrapper for <see cref = "IFillModel.MarketOnCloseFill(Security, MarketOnCloseOrder)" /> in Python
         /// </summary>
         /// <param name="asset">Asset we're trading with this order</param>
         /// <param name="order">Order to be filled</param>
@@ -79,7 +79,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Market on Open Fill Model. Return an order event with the fill details
+        /// Wrapper for <see cref = "IFillModel.MarketOnOpenFill(Security, MarketOnOpenOrder)" /> in Python
         /// </summary>
         /// <param name="asset">Asset we're trading with this order</param>
         /// <param name="order">Order to be filled</param>
@@ -93,7 +93,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Stop Limit Fill Model. Return an order event with the fill details.
+        /// Wrapper for <see cref = "IFillModel.StopLimitFill(Security, StopLimitOrder)" /> in Python
         /// </summary>
         /// <param name="asset">Asset we're trading this order</param>
         /// <param name="order">Stop Limit Order to Check, return filled if true</param>
@@ -107,7 +107,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Stop Market Fill Model. Return an order event with the fill details.
+        /// Wrapper for <see cref = "IFillModel.StopMarketFill(Security, StopMarketOrder)" /> in Python
         /// </summary>
         /// <param name="asset">Asset we're trading this order</param>
         /// <param name="order">Stop Order to Check, return filled if true</param>

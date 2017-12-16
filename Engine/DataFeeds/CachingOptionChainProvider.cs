@@ -61,17 +61,17 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 
             return symbols;
         }
+    }
 
-        private class OptionChainCacheEntry
+    internal class OptionChainCacheEntry
+    {
+        public DateTime Date { get; }
+        public List<Symbol> Symbols { get; }
+
+        public OptionChainCacheEntry(DateTime date, List<Symbol> symbols)
         {
-            public DateTime Date { get; }
-            public List<Symbol> Symbols { get; }
-
-            public OptionChainCacheEntry(DateTime date, List<Symbol> symbols)
-            {
-                Date = date;
-                Symbols = symbols;
-            }
+            Date = date;
+            Symbols = symbols;
         }
     }
 }

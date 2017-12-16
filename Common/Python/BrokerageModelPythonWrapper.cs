@@ -26,7 +26,7 @@ using QuantConnect.Securities;
 namespace QuantConnect.Python
 {
     /// <summary>
-    /// Provides an implementation of <see cref="IBrokerageModel"/> that wraps a <see cref="PyObject"/> object
+    /// Wraps a <see cref="PyObject"/> object that models brokerage transactions, fees, and order
     /// </summary>
     public class BrokerageModelPythonWrapper : IBrokerageModel
     {
@@ -70,7 +70,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Applies the split to the specified order ticket
+        /// Wrapper for <see cref = "IBrokerageModel.ApplySplit(List{OrderTicket}, Split)" /> in Python
         /// </summary>
         /// <param name="tickets">The open tickets matching the split event</param>
         /// <param name="split">The split event data</param>
@@ -83,11 +83,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Returns true if the brokerage would be able to execute this order at this time assuming
-        /// market prices are sufficient for the fill to take place. This is used to emulate the 
-        /// brokerage fills in backtesting and paper trading. For example some brokerages may not perform
-        /// executions during extended market hours. This is not intended to be checking whether or not
-        /// the exchange is open, that is handled in the Security.Exchange property.
+        /// Wrapper for <see cref = "IBrokerageModel.CanExecuteOrder(Security, Order)" /> in Python
         /// </summary>
         /// <param name="security">The security being ordered</param>
         /// <param name="order">The order to test for execution</param>
@@ -101,8 +97,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Returns true if the brokerage could accept this order. This takes into account
-        /// order type, security type, and order size limits.
+        /// Wrapper for <see cref = "IBrokerageModel.CanSubmitOrder(Security, Order, out BrokerageMessageEvent)" /> in Python
         /// </summary>
         /// <remarks>
         /// For example, a brokerage may have no connectivity at certain times, or an order rate/size limit
@@ -120,7 +115,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Returns true if the brokerage would allow updating the order as specified by the request
+        /// Wrapper for <see cref = "IBrokerageModel.CanUpdateOrder(Security, Order, UpdateOrderRequest, out BrokerageMessageEvent)" /> in Python
         /// </summary>
         /// <param name="security">The security of the order</param>
         /// <param name="order">The order to be updated</param>
@@ -136,7 +131,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Gets a new fee model that represents this brokerage's fee structure
+        /// Wrapper for <see cref = "IBrokerageModel.GetFeeModel(Security)" /> in Python
         /// </summary>
         /// <param name="security">The security to get a fee model for</param>
         /// <returns>The new fee model for this brokerage</returns>
@@ -149,7 +144,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Gets a new fill model that represents this brokerage's fill behavior
+        /// Wrapper for <see cref = "IBrokerageModel.GetFillModel(Security)" /> in Python
         /// </summary>
         /// <param name="security">The security to get fill model for</param>
         /// <returns>The new fill model for this brokerage</returns>
@@ -162,7 +157,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Gets the brokerage's leverage for the specified security
+        /// Wrapper for <see cref = "IBrokerageModel.GetLeverage(Security)" /> in Python
         /// </summary>
         /// <param name="security">The security's whose leverage we seek</param>
         /// <returns>The leverage for the specified security</returns>
@@ -175,7 +170,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Gets a new settlement model for the security
+        /// Wrapper for <see cref = "IBrokerageModel.GetSettlementModel(Security, AccountType)" /> in Python
         /// </summary>
         /// <param name="security">The security to get a settlement model for</param>
         /// <param name="accountType">The account type</param>
@@ -189,7 +184,7 @@ namespace QuantConnect.Python
         }
 
         /// <summary>
-        /// Gets a new slippage model that represents this brokerage's fill slippage behavior
+        /// Wrapper for <see cref = "IBrokerageModel.GetSlippageModel(Security)" /> in Python
         /// </summary>
         /// <param name="security">The security to get a slippage model for</param>
         /// <returns>The new slippage model for this brokerage</returns>

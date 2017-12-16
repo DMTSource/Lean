@@ -198,9 +198,6 @@ namespace QuantConnect.Lean.Engine.Setup
                     // set the option chain provider
                     algorithm.SetOptionChainProvider(new CachingOptionChainProvider(new BacktestingOptionChainProvider()));
 
-                    // set the future chain provider
-                    algorithm.SetFutureChainProvider(new CachingFutureChainProvider(new BacktestingFutureChainProvider()));
-
                     //Initialise the algorithm, get the required data:
                     algorithm.Initialize();
                 }

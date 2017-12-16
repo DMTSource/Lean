@@ -957,38 +957,48 @@ namespace QuantConnect.Algorithm
             decimal marginRequired;
             decimal orderValue;
             decimal orderFees;
-            var feeToPriceRatio = 0m;
+            var feeToPriceRatio = 0;
 
             // compute the initial order quantity
-            var orderQuantity = targetOrderValue / unitPrice;
+            decimal orderQuantity = targetOrderValue / unitPrice;
 
-            // rounding off Order Quantity to the nearest multiple of Lot Size
-            orderQuantity -= orderQuantity % security.SymbolProperties.LotSize;
+            if (orderQuantity % security.SymbolProperties.LotSize != 0)
+            {
+                orderQuantity = orderQuantity - (orderQuantity % security.SymbolProperties.LotSize);
+            }
+
+            var iterations = 0;
 
             do
             {
-                // reduce order quantity by feeToPriceRatio, since it is faster than by lot size
-                // if it becomes nonpositive, return zero
-                orderQuantity -= feeToPriceRatio;
-                if (orderQuantity <= 0) return 0;
+                // decrease the order quantity
+                if (iterations > 0)
+                {
+                    // if fees are high relative to price, we reduce the order quantity faster
+                    if (feeToPriceRatio > 0)
+                        orderQuantity -= feeToPriceRatio;
+                    else
+                        orderQuantity--;
+                }
 
                 // generate the order
                 var order = new MarketOrder(security.Symbol, orderQuantity, UtcTime);
                 orderValue = order.GetValue(security);
                 orderFees = security.FeeModel.GetOrderFee(security, order);
-
-                // find an incremental delta value for the next iteration step
-                feeToPriceRatio = orderFees / unitPrice;
-                feeToPriceRatio -= feeToPriceRatio % security.SymbolProperties.LotSize;
-                if (feeToPriceRatio < security.SymbolProperties.LotSize)
-                {
-                    feeToPriceRatio = security.SymbolProperties.LotSize;
-                }
+                feeToPriceRatio = (int)(orderFees / unitPrice);
 
                 // calculate the margin required for the order
                 marginRequired = security.MarginModel.GetInitialMarginRequiredForOrder(security, order);
 
-            } while (marginRequired > marginRemaining || orderValue + orderFees > targetOrderValue);
+                iterations++;
+
+            } while (orderQuantity > 0 && (marginRequired > marginRemaining || orderValue + orderFees > targetOrderValue));
+
+            //Rounding off Order Quantity to the nearest multiple of Lot Size
+            if (orderQuantity % security.SymbolProperties.LotSize != 0)
+            {
+                orderQuantity = orderQuantity - (orderQuantity % security.SymbolProperties.LotSize);
+            }
 
             // add directionality back in
             return (direction == OrderDirection.Sell ? -1 : 1) * orderQuantity;

@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using NodaTime;
 using QuantConnect.Data;
+using QuantConnect.Data.Consolidators;
 using QuantConnect.Data.Market;
-using QuantConnect.Logging;
 using QuantConnect.Util;
 
 namespace QuantConnect.ToolBox.KaikoDataConverter
@@ -116,25 +115,25 @@ namespace QuantConnect.ToolBox.KaikoDataConverter
         /// </summary>
         /// <param name="tickType">The tick type being processed</param>
         /// <returns>A collection of <see cref="KaikoDataAggregator"/></returns>
-        private static List<TickAggregator> GetDataAggregatorsForTickType(TickType tickType)
+        private static List<KaikoDataAggregator> GetDataAggregatorsForTickType(TickType tickType)
         {
             if (tickType == TickType.Quote)
             {
-                return new List<TickAggregator>
+                return new List<KaikoDataAggregator>
                 {
-                    new QuoteTickAggregator(Resolution.Second),
-                    new QuoteTickAggregator(Resolution.Minute),
-                    new QuoteTickAggregator(Resolution.Hour),
-                    new QuoteTickAggregator(Resolution.Daily),
+                    new KaikoQuoteDataAggregator(Resolution.Second),
+                    new KaikoQuoteDataAggregator(Resolution.Minute),
+                    new KaikoQuoteDataAggregator(Resolution.Hour),
+                    new KaikoQuoteDataAggregator(Resolution.Daily),
                 };
             }
 
-            return new List<TickAggregator>
+            return new List<KaikoDataAggregator>
             {
-                new TradeTickAggregator(Resolution.Second),
-                new TradeTickAggregator(Resolution.Minute),
-                new TradeTickAggregator(Resolution.Hour),
-                new TradeTickAggregator(Resolution.Daily),
+                new KaikoTradeDataAggregator(Resolution.Second),
+                new KaikoTradeDataAggregator(Resolution.Minute),
+                new KaikoTradeDataAggregator(Resolution.Hour),
+                new KaikoTradeDataAggregator(Resolution.Daily),
             };
         }
 
@@ -198,27 +197,12 @@ namespace QuantConnect.ToolBox.KaikoDataConverter
                     var lineParts = line.Split(',');
 
                     var tickEpoch = Convert.ToInt64(lineParts[dateColumn]);
-
-                    decimal quantity;
-                    decimal price;
-
-                    try
-                    {
-                        quantity = ParseScientificNotationToDecimal(lineParts, quantityColumn);
-                        price = ParseScientificNotationToDecimal(lineParts, priceColumn);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"KaikoDataConverter.ParseKaikoQuoteFile(): Data corrupted in file {unzippedFile}. Line {string.Join(" ", lineParts)}, Exception {ex}");
-                        continue;
-                    }
-
                     var currentTick = new KaikoTick
                     {
                         TickType = TickType.Quote,
                         Time = Time.UnixMillisecondTimeStampToDateTime(tickEpoch),
-                        Quantity = quantity,
-                        Value = price,
+                        Quantity = ParseQuantity(lineParts, quantityColumn),
+                        Value = Convert.ToDecimal(lineParts[priceColumn]),
                         OrderDirection = lineParts[typeColumn]
                     };
 
@@ -246,12 +230,10 @@ namespace QuantConnect.ToolBox.KaikoDataConverter
         /// <returns>A single Lean quote tick</returns>
         private static Tick CreateQuoteTick(Symbol symbol, DateTime date, List<KaikoTick> currentEpcohTicks)
         {
-            // lowest ask
             var bestAsk = currentEpcohTicks.Where(x => x.OrderDirection == "a")
-                                        .OrderBy(x => x.Value)
+                                        .OrderByDescending(x => x.Value)
                                         .FirstOrDefault();
 
-            // highest bid
             var bestBid = currentEpcohTicks.Where(x => x.OrderDirection == "b")
                                         .OrderByDescending(x => x.Value)
                                         .FirstOrDefault();
@@ -306,28 +288,13 @@ namespace QuantConnect.ToolBox.KaikoDataConverter
                     if (line == null) continue;
 
                     var lineParts = line.Split(',');
-
-                    decimal quantity;
-                    decimal price;
-
-                    try
-                    {
-                        quantity = ParseScientificNotationToDecimal(lineParts, quantityColumn);
-                        price = ParseScientificNotationToDecimal(lineParts, priceColumn);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"KaikoDataConverter.ParseKaikoTradeFile(): Data corrupted in file {unzippedFile}. Line {string.Join(" ", lineParts)}, Exception {ex}");
-                        continue;
-                    }
-
                     yield return new Tick
                     {
                         Symbol = symbol,
                         TickType = TickType.Trade,
                         Time = Time.UnixMillisecondTimeStampToDateTime(Convert.ToInt64(lineParts[dateColumn])),
-                        Quantity = quantity,
-                        Value = price
+                        Quantity = ParseQuantity(lineParts, quantityColumn),
+                        Value = Convert.ToDecimal(lineParts[priceColumn])
                     };
                 }
             }
@@ -337,18 +304,17 @@ namespace QuantConnect.ToolBox.KaikoDataConverter
         /// Parse the quantity field of the kaiko ticks - can sometimes be expressed in scientific notation
         /// </summary>
         /// <param name="lineParts">The line from the Kaiko file</param>
-        /// <param name="column">The index of the quantity column </param>
+        /// <param name="quantityColumn">The index of the quantity column </param>
         /// <returns>The quantity as a decimal</returns>
-        private static decimal ParseScientificNotationToDecimal(string[] lineParts, int column)
+        private static decimal ParseQuantity(string[] lineParts, int quantityColumn)
         {
-            var value = lineParts[column];
-            if (value.Contains("e"))
+            var quantity = lineParts[quantityColumn];
+            if (quantity.Contains("e"))
             {
-                return Decimal.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture);
+                return Decimal.Parse(quantity, System.Globalization.NumberStyles.Float);
             }
 
-            return Convert.ToDecimal(lineParts[column], CultureInfo.InvariantCulture);
-
+            return Convert.ToDecimal(lineParts[quantityColumn]);
         }
 
         /// <summary>
@@ -358,6 +324,73 @@ namespace QuantConnect.ToolBox.KaikoDataConverter
         internal class KaikoTick : Tick
         {
             public string OrderDirection { get; set; }
+        }
+
+        /// <summary>
+        /// Base class for consolidator
+        /// </summary>
+        internal abstract class KaikoDataAggregator
+        {
+            public abstract List<BaseData> Flush();
+            public abstract IDataConsolidator Consolidator { get; }
+            public List<BaseData> Consolidated { get; protected set; }
+            public Resolution Resolution { get; protected set; }
+        }
+
+        /// <summary>
+        /// Use <see cref="TickQuoteBarConsolidator"/> to consolidate quote ticks into a specified resolution
+        /// </summary>
+        internal class KaikoQuoteDataAggregator : KaikoDataAggregator
+        {
+            public override IDataConsolidator Consolidator => _consolidator;
+
+            private readonly TickQuoteBarConsolidator _consolidator;
+
+            public KaikoQuoteDataAggregator(Resolution resolution)
+            {
+                Resolution = resolution;
+                Consolidated = new List<BaseData>();
+                _consolidator = new TickQuoteBarConsolidator(resolution.ToTimeSpan());
+                _consolidator.DataConsolidated += (sender, consolidated) =>
+                {
+                    Consolidated.Add(consolidated);
+                };
+            }
+
+            public override List<BaseData> Flush()
+            {
+                // Add the last bar
+                Consolidated.Add(Consolidator.WorkingData as QuoteBar);
+                return Consolidated;
+            }
+        }
+
+        /// <summary>
+        /// Use <see cref="TickQuoteBarConsolidator"/> to consolidate trade ticks into a specified resolution
+        /// </summary>
+        internal class KaikoTradeDataAggregator : KaikoDataAggregator
+        {
+            public override IDataConsolidator Consolidator => _consolidator;
+
+            private readonly TickConsolidator _consolidator;
+
+            public KaikoTradeDataAggregator(Resolution resolution)
+            {
+                Resolution = resolution;
+                Consolidated = new List<BaseData>();
+                _consolidator = new TickConsolidator(resolution.ToTimeSpan());
+                _consolidator.DataConsolidated += (sender, consolidated) =>
+                {
+                    Consolidated.Add(consolidated);
+                };
+            }
+
+            public override List<BaseData> Flush()
+            {
+                // Add the last bar
+                Consolidated.Add(Consolidator.WorkingData as TradeBar);
+                return Consolidated;
+            }
         }
     }
 }

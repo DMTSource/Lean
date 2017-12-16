@@ -92,14 +92,6 @@ namespace QuantConnect.Messaging
                     Log.Error(handled.Message + hstack);
                     break;
 
-                case PacketType.Alpha:
-                    var alphas = ((AlphaPacket) packet).Alphas;
-                    foreach (var alpha in alphas)
-                    {
-                        Log.Trace("Alpha: " + alpha);
-                    }
-                    break;
-
                 case PacketType.BacktestResult:
                     var result = (BacktestResultPacket) packet;
 

@@ -30,12 +30,12 @@ using QuantConnect.Securities.Option;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using QuantConnect.Algorithm.Framework.Alphas;
 
 namespace QuantConnect.AlgorithmFactory.Python.Wrappers
 {
     /// <summary>
-    /// Creates and wraps the algorithm written in python.
+    /// Wrapper for an IAlgorithm instance created in Python.
+    /// All calls to python should be inside a "using (Py.GIL()) {/* Your code here */}" block.
     /// </summary>
     public class AlgorithmPythonWrapper : IAlgorithm
     {
@@ -81,12 +81,8 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
                             // QCAlgorithm reference for LEAN internal C# calls (without going from C# to Python and back)
                             _baseAlgorithm = (QCAlgorithm)_algorithm;
 
-                            // write events such that when the base handles an event it
-                            // will also invoke event handlers defined on this instance
-                            _baseAlgorithm.AlphasGenerated += AlphasGenerated;
-
                             // Set pandas
-                            _baseAlgorithm.SetPandasConverter();
+                            _baseAlgorithm.SetPandas();
 
                             return;
                         }
@@ -100,7 +96,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// AlgorithmId for the backtest
+        /// Wrapper for <see cref = "IAlgorithm.AlgorithmId" /> in Python
         /// </summary>
         public string AlgorithmId
         {
@@ -111,8 +107,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the function used to define the benchmark. This function will return
-        /// the value of the benchmark at a requested date/time
+        /// Wrapper for <see cref = "IAlgorithm.Benchmark" /> in Python
         /// </summary>
         public IBenchmark Benchmark
         {
@@ -123,8 +118,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the brokerage message handler used to decide what to do
-        /// with each message sent from the brokerage
+        /// Wrapper for <see cref="IAlgorithm.BrokerageMessageHandler" /> in Python
         /// </summary>
         public IBrokerageMessageHandler BrokerageMessageHandler
         {
@@ -140,7 +134,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the brokerage model used to emulate a real brokerage
+        /// Wrapper for <see cref = "IAlgorithm.BrokerageModel" /> in Python
         /// </summary>
         public IBrokerageModel BrokerageModel
         {
@@ -151,7 +145,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Debug messages from the strategy:
+        /// Wrapper for <see cref = "IAlgorithm.DebugMessages" /> in Python
         /// </summary>
         public ConcurrentQueue<string> DebugMessages
         {
@@ -162,7 +156,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Get Requested Backtest End Date
+        /// Wrapper for <see cref = "IAlgorithm.EndDate" /> in Python
         /// </summary>
         public DateTime EndDate
         {
@@ -173,7 +167,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Error messages from the strategy:
+        /// Wrapper for <see cref = "IAlgorithm.ErrorMessages" /> in Python
         /// </summary>
         public ConcurrentQueue<string> ErrorMessages
         {
@@ -184,7 +178,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets or sets the history provider for the algorithm
+        /// Wrapper for <see cref = "IAlgorithm.HistoryProvider" /> in Python
         /// </summary>
         public IHistoryProvider HistoryProvider
         {
@@ -200,15 +194,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets a flag indicating whether or not this algorithm uses the QCAlgorithmFramework
-        /// </summary>
-        public bool IsFrameworkAlgorithm
-        {
-            get { return _baseAlgorithm.IsFrameworkAlgorithm; }
-        }
-
-        /// <summary>
-        /// Gets whether or not this algorithm is still warming up
+        /// Wrapper for <see cref = "IAlgorithm.IsWarmingUp" /> in Python
         /// </summary>
         public bool IsWarmingUp
         {
@@ -219,7 +205,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Algorithm is running on a live server.
+        /// Wrapper for <see cref = "IAlgorithm.LiveMode" /> in Python
         /// </summary>
         public bool LiveMode
         {
@@ -230,7 +216,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Log messages from the strategy:
+        /// Wrapper for <see cref = "IAlgorithm.LogMessages" /> in Python
         /// </summary>
         public ConcurrentQueue<string> LogMessages
         {
@@ -241,9 +227,8 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Public name for the algorithm.
+        /// Wrapper for <see cref = "IAlgorithm.Name" /> in Python
         /// </summary>
-        /// <remarks>Not currently used but preserved for API integrity</remarks>
         public string Name
         {
             get
@@ -257,7 +242,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Notification manager for storing and processing live event messages
+        /// Wrapper for <see cref = "IAlgorithm.Notify" /> in Python
         /// </summary>
         public NotificationManager Notify
         {
@@ -268,10 +253,8 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Security portfolio management class provides wrapper and helper methods for the Security.Holdings class such as
-        /// IsLong, IsShort, TotalProfit
+        /// Wrapper for <see cref = "IAlgorithm.Portfolio" /> in Python
         /// </summary>
-        /// <remarks>Portfolio is a wrapper and helper class encapsulating the Securities[].Holdings objects</remarks>
         public SecurityPortfolioManager Portfolio
         {
             get
@@ -281,7 +264,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the run time error from the algorithm, or null if none was encountered.
+        /// Wrapper for <see cref = "IAlgorithm.RunTimeError" /> in Python
         /// </summary>
         public Exception RunTimeError
         {
@@ -297,7 +280,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Customizable dynamic statistics displayed during live trading:
+        /// Wrapper for <see cref = "IAlgorithm.RuntimeStatistics" /> in Python
         /// </summary>
         public ConcurrentDictionary<string, string> RuntimeStatistics
         {
@@ -308,7 +291,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets schedule manager for adding/removing scheduled events
+        /// Wrapper for <see cref = "IAlgorithm.Schedule" /> in Python
         /// </summary>
         public ScheduleManager Schedule
         {
@@ -319,10 +302,8 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Security object collection class stores an array of objects representing representing each security/asset
-        /// we have a subscription for.
+        /// Wrapper for <see cref = "IAlgorithm.Securities" /> in Python
         /// </summary>
-        /// <remarks>It is an IDictionary implementation and can be indexed by symbol</remarks>
         public SecurityManager Securities
         {
             get
@@ -332,7 +313,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets an instance that is to be used to initialize newly created securities.
+        /// Wrapper for <see cref = "IAlgorithm.SecurityInitializer" /> in Python
         /// </summary>
         public ISecurityInitializer SecurityInitializer
         {
@@ -343,7 +324,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the Trade Builder to generate trades from executions
+        /// Wrapper for <see cref = "IAlgorithm.TradeBuilder" /> in Python
         /// </summary>
         public ITradeBuilder TradeBuilder
         {
@@ -354,7 +335,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the user settings for the algorithm
+        /// Wrapper for <see cref = "IAlgorithm.Settings" /> in Python
         /// </summary>
         public AlgorithmSettings Settings
         {
@@ -365,7 +346,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the option chain provider, used to get the list of option contracts for an underlying symbol
+        /// Wrapper for <see cref = "IAlgorithm.OptionChainProvider" /> in Python
         /// </summary>
         public IOptionChainProvider OptionChainProvider
         {
@@ -376,18 +357,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the future chain provider, used to get the list of future contracts for an underlying symbol
-        /// </summary>
-        public IFutureChainProvider FutureChainProvider
-        {
-            get
-            {
-                return _baseAlgorithm.FutureChainProvider;
-            }
-        }
-
-        /// <summary>
-        /// Algorithm start date for backtesting, set by the SetStartDate methods.
+        /// Wrapper for <see cref = "IAlgorithm.StartDate" /> in Python
         /// </summary>
         public DateTime StartDate
         {
@@ -398,7 +368,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets or sets the current status of the algorithm
+        /// Wrapper for <see cref = "IAlgorithm.Status" /> in Python
         /// </summary>
         public AlgorithmStatus Status
         {
@@ -414,49 +384,34 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Set the state of a live deployment
+        /// Wrapper for <see cref = "IAlgorithm.SetStatus" /> in Python
         /// </summary>
-        /// <param name="status">Live deployment status</param>
-        public void SetStatus(AlgorithmStatus status)
+        /// <param name="value"></param>
+        public void SetStatus(AlgorithmStatus value)
         {
-            _baseAlgorithm.SetStatus(status);
+            _baseAlgorithm.SetStatus(value);
         }
 
         /// <summary>
-        /// Set the available <see cref="TickType"/> supported by each <see cref="SecurityType"/> in <see cref="SecurityManager"/>
+        /// Wrapper for <see cref = "IAlgorithm.SetAvailableDataTypes" /> in Python
         /// </summary>
-        /// <param name="availableDataTypes">>The different <see cref="TickType"/> each <see cref="Security"/> supports</param>
+        /// <param name="availableDataTypes"></param>
         public void SetAvailableDataTypes(Dictionary<SecurityType, List<TickType>> availableDataTypes)
         {
             _baseAlgorithm.SetAvailableDataTypes(availableDataTypes);
         }
 
         /// <summary>
-        /// Sets the option chain provider, used to get the list of option contracts for an underlying symbol
+        /// Wrapper for <see cref = "IAlgorithm.SetOptionChainProvider" /> in Python
         /// </summary>
-        /// <param name="optionChainProvider">The option chain provider</param>
+        /// <param name="optionChainProvider"></param>
         public void SetOptionChainProvider(IOptionChainProvider optionChainProvider)
         {
             _baseAlgorithm.SetOptionChainProvider(optionChainProvider);
         }
 
         /// <summary>
-        /// Sets the future chain provider, used to get the list of future contracts for an underlying symbol
-        /// </summary>
-        /// <param name="futureChainProvider">The future chain provider</param>
-        public void SetFutureChainProvider(IFutureChainProvider futureChainProvider)
-        {
-            _baseAlgorithm.SetFutureChainProvider(futureChainProvider);
-        }
-
-        /// <summary>
-        /// Event fired when an algorithm generates a alpha
-        /// </summary>
-        public event AlgorithmEvent<AlphaCollection> AlphasGenerated;
-
-        /// <summary>
-        /// Data subscription manager controls the information and subscriptions the algorithms recieves.
-        /// Subscription configurations can be added through the Subscription Manager.
+        /// Wrapper for <see cref = "IAlgorithm.SubscriptionManager" /> in Python
         /// </summary>
         public SubscriptionManager SubscriptionManager
         {
@@ -467,7 +422,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Current date/time in the algorithm's local time zone
+        /// Wrapper for <see cref = "IAlgorithm.Time" /> in Python
         /// </summary>
         public DateTime Time
         {
@@ -478,7 +433,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the time zone of the algorithm
+        /// Wrapper for <see cref = "IAlgorithm.TimeZone" /> in Python
         /// </summary>
         public DateTimeZone TimeZone
         {
@@ -489,9 +444,8 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Security transaction manager class controls the store and processing of orders.
+        /// Wrapper for <see cref = "IAlgorithm.Transactions" /> in Python
         /// </summary>
-        /// <remarks>The orders and their associated events are accessible here. When a new OrderEvent is recieved the algorithm portfolio is updated.</remarks>
         public SecurityTransactionManager Transactions
         {
             get
@@ -501,7 +455,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the collection of universes for the algorithm
+        /// Wrapper for <see cref = "IAlgorithm.UniverseManager" /> in Python
         /// </summary>
         public UniverseManager UniverseManager
         {
@@ -512,7 +466,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Gets the subscription settings to be used when adding securities via universe selection
+        /// Wrapper for <see cref = "IAlgorithm.UniverseSettings" /> in Python
         /// </summary>
         public UniverseSettings UniverseSettings
         {
@@ -523,7 +477,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Current date/time in UTC.
+        /// Wrapper for <see cref = "IAlgorithm.UtcTime" /> in Python
         /// </summary>
         public DateTime UtcTime
         {
@@ -534,15 +488,16 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Set a required SecurityType-symbol and resolution for algorithm
+        /// Wrapper for <see cref = "IAlgorithm.AddSecurity" /> in Python
         /// </summary>
-        /// <param name="securityType">SecurityType Enum: Equity, Commodity, FOREX or Future</param>
-        /// <param name="symbol">Symbol Representation of the MarketType, e.g. AAPL</param>
-        /// <param name="resolution">Resolution of the MarketType required: MarketData, Second or Minute</param>
-        /// <param name="market">The market the requested security belongs to, such as 'usa' or 'fxcm'</param>
-        /// <param name="fillDataForward">If true, returns the last available data even if none in that timeslice.</param>
-        /// <param name="leverage">leverage for this security</param>
-        /// <param name="extendedMarketHours">ExtendedMarketHours send in data from 4am - 8pm, not used for FOREX</param>
+        /// <param name="securityType"></param>
+        /// <param name="symbol"></param>
+        /// <param name="resolution"></param>
+        /// <param name="market"></param>
+        /// <param name="fillDataForward"></param>
+        /// <param name="leverage"></param>
+        /// <param name="extendedMarketHours"></param>
+        /// <returns></returns>
         public Security AddSecurity(SecurityType securityType, string symbol, Resolution resolution, string market, bool fillDataForward, decimal leverage, bool extendedMarketHours)
         {
             return _baseAlgorithm.AddSecurity(securityType, symbol, resolution, market, fillDataForward, leverage, extendedMarketHours);
@@ -575,63 +530,54 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Send debug message
+        /// Wrapper for <see cref = "IAlgorithm.Debug" /> in Python
         /// </summary>
-        /// <param name="message">String message</param>
+        /// <param name="message"></param>
         public void Debug(string message)
         {
             _baseAlgorithm.Debug(message);
         }
 
         /// <summary>
-        /// Send an error message for the algorithm
+        /// Wrapper for <see cref = "IAlgorithm.Error" /> in Python
         /// </summary>
-        /// <param name="message">String message</param>
+        /// <param name="message"></param>
         public void Error(string message)
         {
             _baseAlgorithm.Error(message);
         }
 
         /// <summary>
-        /// Add a Chart object to algorithm collection
-        /// </summary>
-        /// <param name="chart">Chart object to add to collection.</param>
-        public void AddChart(Chart chart)
-        {
-            _baseAlgorithm.AddChart(chart);
-        }
-
-        /// <summary>
-        /// Get the chart updates since the last request:
+        /// Wrapper for <see cref = "IAlgorithm.GetChartUpdates" /> in Python
         /// </summary>
         /// <param name="clearChartData"></param>
-        /// <returns>List of Chart Updates</returns>
+        /// <returns></returns>
         public List<Chart> GetChartUpdates(bool clearChartData = false)
         {
             return _baseAlgorithm.GetChartUpdates(clearChartData);
         }
 
         /// <summary>
-        /// Gets whether or not this algorithm has been locked and fully initialized
+        /// Wrapper for <see cref = "IAlgorithm.GetLocked" /> in Python
         /// </summary>
+        /// <returns></returns>
         public bool GetLocked()
         {
             return _baseAlgorithm.GetLocked();
         }
 
         /// <summary>
-        /// Gets the parameter with the specified name. If a parameter
-        /// with the specified name does not exist, null is returned
+        /// Wrapper for <see cref = "IAlgorithm.GetParameter" /> in Python
         /// </summary>
-        /// <param name="name">The name of the parameter to get</param>
-        /// <returns>The value of the specified parameter, or null if not found</returns>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public string GetParameter(string name)
         {
             return _baseAlgorithm.GetParameter(name);
         }
 
         /// <summary>
-        /// Gets the history requests required for provide warm up data for the algorithm
+        /// Wrapper for <see cref = "IAlgorithm.GetWarmupHistoryRequests" /> in Python
         /// </summary>
         /// <returns></returns>
         public IEnumerable<HistoryRequest> GetWarmupHistoryRequests()
@@ -640,7 +586,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Initialise the Algorithm and Prepare Required Data:
+        /// Wrapper for <see cref = "IAlgorithm.Initialize" /> in Python
         /// </summary>
         public void Initialize()
         {
@@ -651,27 +597,27 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Liquidate your portfolio holdings:
+        /// Wrapper for <see cref = "IAlgorithm.Liquidate" /> in Python
         /// </summary>
-        /// <param name="symbolToLiquidate">Specific asset to liquidate, defaults to all.</param>
-        /// <param name="tag">Custom tag to know who is calling this.</param>
-        /// <returns>list of order ids</returns>
+        /// <param name="symbolToLiquidate"></param>
+        /// <param name="tag"></param>
+        /// <returns></returns>
         public List<int> Liquidate(Symbol symbolToLiquidate = null, string tag = "Liquidated")
         {
             return _baseAlgorithm.Liquidate(symbolToLiquidate, tag);
         }
 
         /// <summary>
-        /// Save entry to the Log
+        /// Wrapper for <see cref = "IAlgorithm.Log" /> in Python
         /// </summary>
-        /// <param name="message">String message</param>
+        /// <param name="message"></param>
         public void Log(string message)
         {
             _baseAlgorithm.Log(message);
         }
 
         /// <summary>
-        /// Brokerage disconnected event handler. This method is called when the brokerage connection is lost.
+        /// Wrapper for <see cref = "IAlgorithm.OnBrokerageDisconnect" /> in Python
         /// </summary>
         public void OnBrokerageDisconnect()
         {
@@ -682,8 +628,9 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Brokerage message event handler. This method is called for all types of brokerage messages.
+        /// Wrapper for <see cref = "IAlgorithm.OnBrokerageMessage" /> in Python
         /// </summary>
+        /// <param name="messageEvent"></param>
         public void OnBrokerageMessage(BrokerageMessageEvent messageEvent)
         {
             using (Py.GIL())
@@ -693,7 +640,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Brokerage reconnected event handler. This method is called when the brokerage connection is restored after a disconnection.
+        /// Wrapper for <see cref = "IAlgorithm.OnBrokerageReconnect" /> in Python
         /// </summary>
         public void OnBrokerageReconnect()
         {
@@ -704,9 +651,8 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// v3.0 Handler for all data types
+        /// Wrapper for <see cref = "IAlgorithm.OnData" /> in Python
         /// </summary>
-        /// <param name="slice">The current slice of data</param>
         public void OnData(Slice slice)
         {
             using (Py.GIL())
@@ -723,19 +669,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Used to send data updates to algorithm framework models
-        /// </summary>
-        /// <param name="slice">The current data slice</param>
-        public void OnFrameworkData(Slice slice)
-        {
-            using (Py.GIL())
-            {
-                _algorithm.OnFrameworkData(slice);
-            }
-        }
-
-        /// <summary>
-        /// Call this event at the end of the algorithm running.
+        /// Wrapper for <see cref = "IAlgorithm.OnEndOfAlgorithm" /> in Python
         /// </summary>
         public void OnEndOfAlgorithm()
         {
@@ -746,61 +680,32 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// End of a trading day event handler. This method is called at the end of the algorithm day (or multiple times if trading multiple assets).
+        /// Wrapper for <see cref = "IAlgorithm.OnEndOfDay()" /> in Python
         /// </summary>
-        /// <remarks>Method is called 10 minutes before closing to allow user to close out position.</remarks>
         public void OnEndOfDay()
         {
-            try
+            using (Py.GIL())
             {
-                using (Py.GIL())
-                {
-                    _algorithm.OnEndOfDay();
-                }
-            }
-            // If OnEndOfDay is not defined in the script, but OnEndOfDay(Symbol) is, a python exception occurs
-            // Only throws if there is an error in its implementation body
-            catch (PythonException exception)
-            {
-                if (!exception.Message.Equals("TypeError : OnEndOfDay() takes exactly 2 arguments (1 given)"))
-                {
-                    throw exception;
-                }
+                _algorithm.OnEndOfDay();
             }
         }
 
         /// <summary>
-        /// End of a trading day event handler. This method is called at the end of the algorithm day (or multiple times if trading multiple assets).
+        /// Wrapper for <see cref = "IAlgorithm.OnEndOfDay(Symbol)" /> in Python
         /// </summary>
-        /// <remarks>
-        /// This method is left for backwards compatibility and is invoked via <see cref="OnEndOfDay(Symbol)"/>, if that method is
-        /// override then this method will not be called without a called to base.OnEndOfDay(string)
-        /// </remarks>
-        /// <param name="symbol">Asset symbol for this end of day event. Forex and equities have different closing hours.</param>
+        /// <param name="symbol"></param>
         public void OnEndOfDay(Symbol symbol)
         {
-            try
+            using (Py.GIL())
             {
-                using (Py.GIL())
-                {
-                    _algorithm.OnEndOfDay(symbol);
-                }
-            }
-            // If OnEndOfDay(Symbol) is not defined in the script, but OnEndOfDay is, a python exception occurs
-            // Only throws if there is an error in its implementation body
-            catch (PythonException exception)
-            {
-                if (!exception.Message.Equals("TypeError : OnEndOfDay() takes exactly 1 argument (2 given)"))
-                {
-                    throw exception;
-                }
+                _algorithm.OnEndOfDay(symbol);
             }
         }
 
         /// <summary>
-        /// Margin call event handler. This method is called right before the margin call orders are placed in the market.
+        /// Wrapper for <see cref = "IAlgorithm.OnMarginCall" /> in Python
         /// </summary>
-        /// <param name="requests">The orders to be executed to bring this algorithm within margin limits</param>
+        /// <param name="requests"></param>
         public void OnMarginCall(List<SubmitOrderRequest> requests)
         {
             try
@@ -849,7 +754,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Margin call warning event handler. This method is called when Portoflio.MarginRemaining is under 5% of your Portfolio.TotalPortfolioValue
+        /// Wrapper for <see cref = "IAlgorithm.OnMarginCallWarning" /> in Python
         /// </summary>
         public void OnMarginCallWarning()
         {
@@ -860,10 +765,9 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// EXPERTS ONLY:: [-!-Async Code-!-]
-        /// New order event handler: on order status changes (filled, partially filled, cancelled etc).
+        /// Wrapper for <see cref = "IAlgorithm.OnOrderEvent" /> in Python
         /// </summary>
-        /// <param name="newEvent">Event information</param>
+        /// <param name="newEvent"></param>
         public void OnOrderEvent(OrderEvent newEvent)
         {
             using (Py.GIL())
@@ -873,22 +777,21 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Option assignment event handler. On an option assignment event for short legs the resulting information is passed to this method.
+        /// Wrapper for <see cref = "IAlgorithm.OnAssignmentOrderEvent" /> in Python
         /// </summary>
-        /// <param name="assignmentEvent">Option exercise event details containing details of the assignment</param>
-        /// <remarks>This method can be called asynchronously and so should only be used by seasoned C# experts. Ensure you use proper locks on thread-unsafe objects</remarks>
-        public void OnAssignmentOrderEvent(OrderEvent assignmentEvent)
+        /// <param name="newEvent"></param>
+        public void OnAssignmentOrderEvent(OrderEvent newEvent)
         {
             using (Py.GIL())
             {
-                _algorithm.OnAssignmentOrderEvent(assignmentEvent);
+                _algorithm.OnAssignmentOrderEvent(newEvent);
             }
         }
 
         /// <summary>
-        /// Event fired each time the we add/remove securities from the data feed
+        /// Wrapper for <see cref = "IAlgorithm.OnSecuritiesChanged" /> in Python
         /// </summary>
-        /// <param name="changes">Security additions/removals for this time step</param>
+        /// <param name="changes"></param>
         public void OnSecuritiesChanged(SecurityChanges changes)
         {
             using (Py.GIL())
@@ -898,20 +801,7 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Used to send security changes to algorithm framework models
-        /// </summary>
-        /// <param name="changes">Security additions/removals for this time step</param>
-        public void OnFrameworkSecuritiesChanged(SecurityChanges changes)
-        {
-            using (Py.GIL())
-            {
-                _algorithm.OnFrameworkSecuritiesChanged(changes);
-            }
-        }
-
-        /// <summary>
-        /// Called by setup handlers after Initialize and allows the algorithm a chance to organize
-        /// the data gather in the Initialize method
+        /// Wrapper for <see cref = "IAlgorithm.PostInitialize" /> in Python
         /// </summary>
         public void PostInitialize()
         {
@@ -919,69 +809,64 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Removes the security with the specified symbol. This will cancel all
-        /// open orders and then liquidate any existing holdings
+        /// Wrapper for <see cref = "IAlgorithm.RemoveSecurity" /> in Python
         /// </summary>
-        /// <param name="symbol">The symbol of the security to be removed</param>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
         public bool RemoveSecurity(Symbol symbol)
         {
             return _baseAlgorithm.RemoveSecurity(symbol);
         }
 
         /// <summary>
-        /// Set the algorithm Id for this backtest or live run. This can be used to identify the order and equity records.
+        /// Wrapper for <see cref = "IAlgorithm.SetAlgorithmId" /> in Python
         /// </summary>
-        /// <param name="algorithmId">unique 32 character identifier for backtest or live server</param>
+        /// <param name="algorithmId"></param>
         public void SetAlgorithmId(string algorithmId)
         {
             _baseAlgorithm.SetAlgorithmId(algorithmId);
         }
 
         /// <summary>
-        /// Sets the implementation used to handle messages from the brokerage.
-        /// The default implementation will forward messages to debug or error
-        /// and when a <see cref="BrokerageMessageType.Error"/> occurs, the algorithm
-        /// is stopped.
+        /// Wrapper for <see cref = "IAlgorithm.SetBrokerageMessageHandler" /> in Python
         /// </summary>
-        /// <param name="handler">The message handler to use</param>
-        public void SetBrokerageMessageHandler(IBrokerageMessageHandler handler)
+        /// <param name="brokerageMessageHandler"></param>
+        public void SetBrokerageMessageHandler(IBrokerageMessageHandler brokerageMessageHandler)
         {
-            _baseAlgorithm.SetBrokerageMessageHandler(handler);
+            _baseAlgorithm.SetBrokerageMessageHandler(brokerageMessageHandler);
         }
 
         /// <summary>
-        /// Sets the brokerage model used to resolve transaction models, settlement models,
-        /// and brokerage specified ordering behaviors.
+        /// Wrapper for <see cref = "IAlgorithm.SetBrokerageModel" /> in Python
         /// </summary>
-        /// <param name="brokerageModel">The brokerage model used to emulate the real
-        /// brokerage</param>
+        /// <param name="brokerageModel"></param>
         public void SetBrokerageModel(IBrokerageModel brokerageModel)
         {
             _baseAlgorithm.SetBrokerageModel(brokerageModel);
         }
 
         /// <summary>
-        /// Set the starting capital for the strategy
+        /// Wrapper for <see cref = "IAlgorithm.SetCash(decimal)" /> in Python
         /// </summary>
-        /// <param name="startingCash">decimal starting capital, default $100,000</param>
+        /// <param name="startingCash"></param>
         public void SetCash(decimal startingCash)
         {
             _baseAlgorithm.SetCash(startingCash);
         }
 
         /// <summary>
-        /// Set the cash for the specified symbol
+        /// Wrapper for <see cref = "IAlgorithm.SetCash(string, decimal, decimal)" /> in Python
         /// </summary>
-        /// <param name="symbol">The cash symbol to set</param>
-        /// <param name="startingCash">Decimal cash value of portfolio</param>
-        /// <param name="conversionRate">The current conversion rate for the</param>
+        /// <param name="symbol"></param>
+        /// <param name="startingCash"></param>
+        /// <param name="conversionRate"></param>
         public void SetCash(string symbol, decimal startingCash, decimal conversionRate)
         {
             _baseAlgorithm.SetCash(symbol, startingCash, conversionRate);
         }
 
         /// <summary>
-        /// Set the DateTime Frontier: This is the master time and is
+        /// Wrapper for <see cref = "IAlgorithm.SetDateTime" /> in Python
         /// </summary>
         /// <param name="time"></param>
         public void SetDateTime(DateTime time)
@@ -990,16 +875,16 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Set the runtime error
+        /// Wrapper for <see cref = "IAlgorithm.SetRunTimeError" /> in Python
         /// </summary>
-        /// <param name="exception">Represents error that occur during execution</param>
+        /// <param name="exception"></param>
         public void SetRunTimeError(Exception exception)
         {
             _baseAlgorithm.SetRunTimeError(exception);
         }
 
         /// <summary>
-        /// Sets <see cref="IsWarmingUp"/> to false to indicate this algorithm has finished its warm up
+        /// Wrapper for <see cref = "IAlgorithm.SetFinishedWarmingUp" /> in Python
         /// </summary>
         public void SetFinishedWarmingUp()
         {
@@ -1007,25 +892,25 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Set the historical data provider
+        /// Wrapper for <see cref = "IAlgorithm.SetHistoryProvider" /> in Python
         /// </summary>
-        /// <param name="historyProvider">Historical data provider</param>
+        /// <param name="historyProvider"></param>
         public void SetHistoryProvider(IHistoryProvider historyProvider)
         {
             _baseAlgorithm.SetHistoryProvider(historyProvider);
         }
 
         /// <summary>
-        /// Set live mode state of the algorithm run: Public setter for the algorithm property LiveMode.
+        /// Wrapper for <see cref = "IAlgorithm.SetLiveMode" /> in Python
         /// </summary>
-        /// <param name="live">Bool live mode flag</param>
+        /// <param name="live"></param>
         public void SetLiveMode(bool live)
         {
             _baseAlgorithm.SetLiveMode(live);
         }
 
         /// <summary>
-        /// Set the algorithm as initialized and locked. No more cash or security changes.
+        /// Wrapper for <see cref = "IAlgorithm.SetLocked" /> in Python
         /// </summary>
         public void SetLocked()
         {
@@ -1033,18 +918,18 @@ namespace QuantConnect.AlgorithmFactory.Python.Wrappers
         }
 
         /// <summary>
-        /// Set the maximum number of orders the algortihm is allowed to process.
+        /// Wrapper for <see cref = "IAlgorithm.SetMaximumOrders" /> in Python
         /// </summary>
-        /// <param name="max">Maximum order count int</param>
+        /// <param name="max"></param>
         public void SetMaximumOrders(int max)
         {
             _baseAlgorithm.SetMaximumOrders(max);
         }
 
         /// <summary>
-        /// Sets the parameters from the dictionary
+        /// Wrapper for <see cref = "IAlgorithm.SetParameters" /> in Python
         /// </summary>
-        /// <param name="parameters">Dictionary containing the parameter names to values</param>
+        /// <param name="parameters"></param>
         public void SetParameters(Dictionary<string, string> parameters)
         {
             _baseAlgorithm.SetParameters(parameters);

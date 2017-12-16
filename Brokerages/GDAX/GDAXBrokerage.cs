@@ -14,6 +14,7 @@
 */
 
 using Newtonsoft.Json;
+using QuantConnect.Interfaces;
 using QuantConnect.Orders;
 using QuantConnect.Securities;
 using RestSharp;
@@ -24,21 +25,24 @@ using System.Linq;
 
 namespace QuantConnect.Brokerages.GDAX
 {
-    public partial class GDAXBrokerage : BaseWebsocketsBrokerage
+    public partial class GDAXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler
     {
 
         #region IBrokerage
         /// <summary>
         /// Checks if the websocket connection is connected or in the process of connecting
         /// </summary>
-        public override bool IsConnected => WebSocket.IsOpen;
+        public override bool IsConnected
+        {
+            get { return WebSocket.IsOpen; }
+        }
 
         /// <summary>
         /// Creates a new order
         /// </summary>
         /// <param name="order"></param>
         /// <returns></returns>
-        public override bool PlaceOrder(Order order)
+        public override bool PlaceOrder(Orders.Order order)
         {
             LockStream();
 
@@ -49,21 +53,12 @@ namespace QuantConnect.Brokerages.GDAX
             payload.size = Math.Abs(order.Quantity);
             payload.side = order.Direction.ToString().ToLower();
             payload.type = ConvertOrderType(order.Type);
-            payload.price = (order as LimitOrder)?.LimitPrice ?? ((order as StopMarketOrder)?.StopPrice ?? 0);
+            payload.price = order is LimitOrder ? ((LimitOrder)order).LimitPrice : order is StopMarketOrder ? ((StopMarketOrder)order).StopPrice : 0;
             payload.product_id = ConvertSymbol(order.Symbol);
 
             if (_algorithm.BrokerageModel.AccountType == AccountType.Margin)
             {
                 payload.overdraft_enabled = true;
-            }
-
-            var orderProperties = order.Properties as GDAXOrderProperties;
-            if (orderProperties != null)
-            {
-                if (order.Type == OrderType.Limit)
-                {
-                    payload.post_only = orderProperties.PostOnly;
-                }
             }
 
             req.AddJsonBody(payload);
@@ -75,16 +70,9 @@ namespace QuantConnect.Brokerages.GDAX
             {
                 var raw = JsonConvert.DeserializeObject<Messages.Order>(response.Content);
 
-                if (raw?.Id == null)
+                if (raw == null || raw.Id == null)
                 {
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, (int)response.StatusCode, "GDAXBrokerage.PlaceOrder: Error parsing response from place order: " + response.Content));
-                    UnlockStream();
-                    return false;
-                }
-
-                if (raw.Status == "rejected")
-                {
-                    OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, 0, "GDAX Order Event") { Status = OrderStatus.Invalid, Message = "Reject reason: " + raw.RejectReason });
                     UnlockStream();
                     return false;
                 }
@@ -179,7 +167,7 @@ namespace QuantConnect.Brokerages.GDAX
             var orders = JsonConvert.DeserializeObject<Messages.Order[]>(response.Content);
             foreach (var item in orders)
             {
-                Order order;
+                Order order = null;
                 if (item.Type == "market")
                 {
                     order = new MarketOrder { Price = item.Price };
@@ -200,7 +188,7 @@ namespace QuantConnect.Brokerages.GDAX
                 }
 
                 order.Quantity = item.Side == "sell" ? -item.Size : item.Size;
-                order.BrokerId = new List<string> { item.Id };
+                order.BrokerId = new List<string> { item.Id.ToString() };
                 order.Symbol = ConvertProductId(item.ProductId);
                 order.Time = DateTime.UtcNow;
                 order.Status = ConvertOrderStatus(item);
@@ -212,10 +200,10 @@ namespace QuantConnect.Brokerages.GDAX
             {
                 if (item.Status.IsOpen())
                 {
-                    var cached = CachedOrderIDs.Where(c => c.Value.BrokerId.Contains(item.BrokerId.First()));
+                    var cached = this.CachedOrderIDs.Where(c => c.Value.BrokerId.Contains(item.BrokerId.First()));
                     if (cached.Any())
                     {
-                        CachedOrderIDs[cached.First().Key] = item;
+                        this.CachedOrderIDs[cached.First().Key] = item;
                     }
                 }
             }
@@ -278,6 +266,20 @@ namespace QuantConnect.Brokerages.GDAX
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Get queued tick data
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<Data.BaseData> GetNextTicks()
+        {
+            lock (Ticks)
+            {
+                var copy = Ticks.ToArray();
+                Ticks.Clear();
+                return copy;
+            }
         }
         #endregion
 

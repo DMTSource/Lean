@@ -1,11 +1,11 @@
 ﻿/*
  * QUANTCONNECT.COM - Democratizing Finance, Empowering Individuals.
  * Lean Algorithmic Trading Engine v2.0. Copyright 2014 QuantConnect Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,7 @@ using System.Linq;
 namespace QuantConnect.Securities
 {
     /// <summary>
-    /// Represents a simple margining model for margining futures. Margin file contains Initial and Maintenance margins
+    /// Represents a simple margining model for margining futures. Margin file contains Initial and Maintenance margins 
     /// </summary>
     public class FutureMarginModel : ISecurityMarginModel
     {
@@ -91,14 +91,7 @@ namespace QuantConnect.Securities
         /// <returns>The maintenance margin required for the </returns>
         public virtual decimal GetMaintenanceMargin(Security security)
         {
-            if (security?.GetLastData() == null || security.Holdings.HoldingsCost == 0m)
-                return 0m;
-
-            var symbol = security.Symbol;
-            var date = security.GetLastData().Time.Date;
-            var marginReq = GetCurrentMarginRequirements(symbol, date);
-
-            return marginReq.MaintenanceOvernight * Math.Sign(security.Holdings.HoldingsCost);
+            return security.Holdings.AbsoluteHoldingsCost * GetMaintenanceMarginRequirement(security, security.Holdings.HoldingsCost);
         }
 
         /// <summary>
@@ -204,8 +197,8 @@ namespace QuantConnect.Securities
 
             return marginReq.MaintenanceOvernight / holdingValue;
         }
-
-
+                
+        
         private MarginRequirementsEntry GetCurrentMarginRequirements (Symbol symbol, DateTime date)
         {
             if (_marginRequirementsHistory == null)
@@ -214,7 +207,7 @@ namespace QuantConnect.Securities
                 _marginCurrentIndex = 0;
             }
 
-            while (_marginCurrentIndex + 1 < _marginRequirementsHistory.Length &&
+            while (_marginCurrentIndex + 1 < _marginRequirementsHistory.Length && 
                 _marginRequirementsHistory[_marginCurrentIndex + 1].Date <= date )
             {
                 _marginCurrentIndex++;
@@ -224,7 +217,7 @@ namespace QuantConnect.Securities
         }
 
         /// <summary>
-        /// Gets the sorted list of historical margin changes produced by reading in the margin requirements
+        /// Gets the sorted list of historical margin changes produced by reading in the margin requirements 
         /// data found in /Data/symbol-margin/
         /// </summary>
         /// <returns>Sorted list of historical margin changes</returns>
@@ -239,7 +232,7 @@ namespace QuantConnect.Securities
                 return FromCsvFile(Path.Combine(directory, symbol.ID.Symbol + ".csv"));
             }
         }
-
+                
         /// <summary>
         /// Reads margin requirements file and returns a sorted list of historical margin changes
         /// </summary>
@@ -268,7 +261,7 @@ namespace QuantConnect.Securities
                 .OrderBy(x => x.Date)
                 .ToArray();
         }
-
+                
         /// <summary>
         /// Creates a new instance of <see cref="MarginRequirementsEntry"/> from the specified csv line
         /// </summary>
@@ -314,7 +307,7 @@ namespace QuantConnect.Securities
             /// Date of margin requirements change
             /// </summary>
             public DateTime Date;
-
+            
             /// <summary>
             /// Initial overnight margin for the contract effective from the date of change
             /// </summary>
