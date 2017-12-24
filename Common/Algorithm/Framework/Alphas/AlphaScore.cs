@@ -34,14 +34,14 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         public double Direction { get; private set; }
 
         /// <summary>
-        /// Gets the percent change score
+        /// Gets the magnitude score
         /// </summary>
         public double Magnitude { get; private set; }
 
         /// <summary>
         /// Gets whether or not this is the alpha's final score
         /// </summary>
-        public bool IsFinalScore { get; internal set; }
+        public bool IsFinalScore { get; private set; }
 
         /// <summary>
         /// Initializes a new, default instance of the <see cref="AlphaScore"/> class
@@ -69,18 +69,23 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <param name="type">The score type to be set, Direction/Magnitude</param>
         /// <param name="value">The new value for the score</param>
         /// <param name="algorithmUtcTime">The algorithm's utc time at which time the new score was computed</param>
-        internal void SetScore(AlphaScoreType type, double value, DateTime algorithmUtcTime)
+        /// <param name="analysisPeriodEndTimeUtc">The end utc time for analysis period of these sores, used to set <see cref="IsFinalScore"/></param>
+        internal void SetScore(AlphaScoreType type, double value, DateTime algorithmUtcTime, DateTime analysisPeriodEndTimeUtc)
         {
             UpdatedTimeUtc = algorithmUtcTime;
+            if (algorithmUtcTime >= analysisPeriodEndTimeUtc)
+            {
+                IsFinalScore = true;
+            }
 
             switch (type)
             {
                 case AlphaScoreType.Direction:
-                    Direction = value;
+                    Direction = Math.Max(0, Math.Min(1, value));
                     break;
 
                 case AlphaScoreType.Magnitude:
-                    Magnitude = value;
+                    Magnitude = Math.Max(0, Math.Min(1, value));
                     break;
 
                 default:

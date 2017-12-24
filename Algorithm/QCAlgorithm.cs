@@ -146,8 +146,7 @@ namespace QuantConnect.Algorithm
             // initialize the trade builder
             TradeBuilder = new TradeBuilder(FillGroupingMethod.FillToFill, FillMatchingMethod.FIFO);
 
-            SecurityInitializer = new BrokerageModelSecurityInitializer(new DefaultBrokerageModel(AccountType.Margin),
-                                                                        new FuncSecuritySeeder(GetLastKnownPrice));
+            SecurityInitializer = new BrokerageModelSecurityInitializer(new DefaultBrokerageModel(AccountType.Margin), SecuritySeeder.Null);
 
             CandlestickPatterns = new CandlestickPatterns(this);
 
@@ -541,7 +540,7 @@ namespace QuantConnect.Algorithm
                     equity = AddEquity(underlying.Value, option.Resolution, underlying.ID.Market, false);
                 }
                 // In the options trading, the strike price, the options settlement and exercise are
-                // all based on the raw price of the underlying asset instead of the adjusted price. 
+                // all based on the raw price of the underlying asset instead of the adjusted price.
                 // In order to select the accurate contracts, we need to set
                 // the data normalization mode of the underlying asset to be raw
                 else if (equity.DataNormalizationMode != DataNormalizationMode.Raw)
@@ -619,9 +618,10 @@ namespace QuantConnect.Algorithm
         /// Sets the security initializer function, used to initialize/configure securities after creation
         /// </summary>
         /// <param name="securityInitializer">The security initializer function</param>
+        [Obsolete("This method is deprecated. Please use this overload: SetSecurityInitializer(Action<Security> securityInitializer)")]
         public void SetSecurityInitializer(Action<Security, bool> securityInitializer)
         {
-            SetSecurityInitializer(new FuncSecurityInitializer(securityInitializer));
+            SetSecurityInitializer(new FuncSecurityInitializer(security => securityInitializer(security, false)));
         }
 
         /// <summary>
@@ -630,7 +630,7 @@ namespace QuantConnect.Algorithm
         /// <param name="securityInitializer">The security initializer function</param>
         public void SetSecurityInitializer(Action<Security> securityInitializer)
         {
-            SetSecurityInitializer(new FuncSecurityInitializer((security, seedSecurity) => securityInitializer(security)));
+            SetSecurityInitializer(new FuncSecurityInitializer(securityInitializer));
         }
 
         /// <summary>
@@ -968,18 +968,19 @@ namespace QuantConnect.Algorithm
             if (!_userSetSecurityInitializer)
             {
                 // purposefully use the direct setter vs Set method so we don't flip the switch :/
-                SecurityInitializer = new BrokerageModelSecurityInitializer(model, new FuncSecuritySeeder(GetLastKnownPrice));
+                SecurityInitializer = new BrokerageModelSecurityInitializer(model, SecuritySeeder.Null);
 
                 // update models on securities added earlier (before SetBrokerageModel is called)
-                foreach (var security in Securities.Values)
+                foreach (var kvp in Securities)
                 {
+                    var security = kvp.Value;
+
                     // save the existing leverage specified in AddSecurity,
                     // if Leverage needs to be set in a SecurityInitializer,
                     // SetSecurityInitializer must be called before SetBrokerageModel
                     var leverage = security.Leverage;
 
-                    // no need to seed the security, has already been done in AddSecurity
-                    SecurityInitializer.Initialize(security, false);
+                    SecurityInitializer.Initialize(security);
 
                     // restore the saved leverage
                     security.SetLeverage(leverage);
@@ -1547,6 +1548,12 @@ namespace QuantConnect.Algorithm
             {
                 equity = AddEquity(underlying.Value, option.Resolution, underlying.ID.Market, false);
             }
+            else if (equity.DataNormalizationMode != DataNormalizationMode.Raw)
+            {
+                Debug($"Warning: The {underlying.ToString()} equity security was set the raw price normalization mode to work with options.");
+            }
+            equity.SetDataNormalizationMode(DataNormalizationMode.Raw);
+
             option.Underlying = equity;
 
             AddToUserDefinedUniverse(option);
@@ -1615,7 +1622,7 @@ namespace QuantConnect.Algorithm
                 // liquidate if invested
                 if (security.Invested) Liquidate(security.Symbol);
 
-                var universe = UniverseManager.Values.OfType<UserDefinedUniverse>().FirstOrDefault(x => x.Members.ContainsKey(symbol));
+                var universe = UniverseManager.Select(x => x.Value).OfType<UserDefinedUniverse>().FirstOrDefault(x => x.Members.ContainsKey(symbol));
                 if (universe != null)
                 {
                     var ret = universe.Remove(symbol);

@@ -310,8 +310,10 @@ namespace QuantConnect.Lean.Engine.Results
                 lock (_chartLock)
                 {
                     //Get the updates since the last chart
-                    foreach (var chart in Charts.Values)
+                    foreach (var kvp in Charts)
                     {
+                        var chart = kvp.Value;
+
                         deltaCharts.Add(chart.Name, chart.GetUpdates());
                     }
                 }
@@ -373,7 +375,7 @@ namespace QuantConnect.Lean.Engine.Results
 
                 splitPackets.Add(new BacktestResultPacket(_job, new BacktestResult
                 {
-                    IsFrameworkAlgorthm = _algorithm.IsFrameworkAlgorithm,
+                    IsFrameworkAlgorithm = _algorithm.IsFrameworkAlgorithm,
                     Charts = new Dictionary<string, Chart>()
                     {
                         {chart.Name, chart}
@@ -381,11 +383,14 @@ namespace QuantConnect.Lean.Engine.Results
                 }, progress));
             }
 
+            // Send alpha run time statistics
+            splitPackets.Add(new BacktestResultPacket(_job, new BacktestResult {IsFrameworkAlgorithm = _algorithm.IsFrameworkAlgorithm, AlphaRuntimeStatistics = AlphaRuntimeStatistics}));
+
             // Add the orders into the charting packet:
-            splitPackets.Add(new BacktestResultPacket(_job, new BacktestResult { IsFrameworkAlgorthm = _algorithm.IsFrameworkAlgorithm, Orders = deltaOrders }, progress));
+            splitPackets.Add(new BacktestResultPacket(_job, new BacktestResult { IsFrameworkAlgorithm = _algorithm.IsFrameworkAlgorithm, Orders = deltaOrders }, progress));
 
             //Add any user runtime statistics into the backtest.
-            splitPackets.Add(new BacktestResultPacket(_job, new BacktestResult { IsFrameworkAlgorthm = _algorithm.IsFrameworkAlgorithm, RuntimeStatistics = runtimeStatistics }, progress));
+            splitPackets.Add(new BacktestResultPacket(_job, new BacktestResult { IsFrameworkAlgorithm = _algorithm.IsFrameworkAlgorithm, RuntimeStatistics = runtimeStatistics }, progress));
 
             return splitPackets;
         }
@@ -410,10 +415,13 @@ namespace QuantConnect.Lean.Engine.Results
 
                     if (result != null)
                     {
-                        //3. Get Storage Location:
+                        //3. Set Alpha Runtime Statistics
+                        result.Results.AlphaRuntimeStatistics = AlphaRuntimeStatistics;
+
+                        //4. Get Storage Location:
                         var key = _job.BacktestId + ".json";
 
-                        //4. Save results
+                        //5. Save results
                         SaveResults(key, result.Results);
                     }
                     else
@@ -506,8 +514,10 @@ namespace QuantConnect.Lean.Engine.Results
 
             //Set the security / market types.
             var types = new List<SecurityType>();
-            foreach (var security in _algorithm.Securities.Values)
+            foreach (var kvp in _algorithm.Securities)
             {
+                var security = kvp.Value;
+
                 if (!types.Contains(security.Type)) types.Add(security.Type);
             }
             SecurityType(types);
@@ -699,16 +709,31 @@ namespace QuantConnect.Lean.Engine.Results
                     foreach (var series in update.Series.Values)
                     {
                         //If we don't already have this record, its the first packet
-                        if (!Charts[update.Name].Series.ContainsKey(series.Name))
+                        var chart = Charts[update.Name];
+                        if (!chart.Series.ContainsKey(series.Name))
                         {
-                            Charts[update.Name].Series.Add(series.Name, new Series(series.Name, series.SeriesType, series.Index, series.Unit)
+                            chart.Series.Add(series.Name, new Series(series.Name, series.SeriesType, series.Index, series.Unit)
                             {
                                 Color = series.Color, ScatterMarkerSymbol = series.ScatterMarkerSymbol
                             });
                         }
 
-                        //We already have this record, so just the new samples to the end:
-                        Charts[update.Name].Series[series.Name].Values.AddRange(series.Values);
+                        var thisSeries = chart.Series[series.Name];
+                        if (series.Values.Count > 0)
+                        {
+                            // only keep last point for pie charts
+                            if (series.SeriesType == SeriesType.Pie)
+                            {
+                                var lastValue = series.Values.Last();
+                                thisSeries.Purge();
+                                thisSeries.Values.Add(lastValue);
+                            }
+                            else
+                            {
+                                //We already have this record, so just the new samples to the end:
+                                chart.Series[series.Name].Values.AddRange(series.Values);
+                            }
+                        }
                     }
                 }
             }
@@ -817,8 +842,10 @@ namespace QuantConnect.Lean.Engine.Results
                 SampleRange(_algorithm.GetChartUpdates());
 
                 //Sample the asset pricing:
-                foreach (var security in _algorithm.Securities.Values)
+                foreach (var kvp in _algorithm.Securities)
                 {
+                    var security = kvp.Value;
+
                     SampleAssetPrices(security.Symbol, time, security.Price);
                 }
             }

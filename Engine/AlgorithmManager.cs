@@ -334,9 +334,6 @@ namespace QuantConnect.Lean.Engine
                 // process fill models on the updated data before entering algorithm, applies to all non-market orders
                 transactions.ProcessSynchronousEvents();
 
-                // poke the alpha handler to allow processing of events on the algorithm's main thread
-                alphas.ProcessSynchronousEvents();
-
                 // process end of day delistings
                 ProcessDelistedSymbols(algorithm, delistings);
 
@@ -432,7 +429,7 @@ namespace QuantConnect.Lean.Engine
                 // apply dividends
                 foreach (var dividend in timeSlice.Slice.Dividends.Values)
                 {
-                    Log.Trace("AlgorithmManager.Run(): {0}: Applying Dividend for {1}", algorithm.Time, dividend.Symbol.ToString());
+                    Log.Debug($"AlgorithmManager.Run(): {algorithm.Time}: Applying Dividend for {dividend.Symbol}");
                     algorithm.Portfolio.ApplyDividend(dividend);
                 }
 
@@ -441,7 +438,7 @@ namespace QuantConnect.Lean.Engine
                 {
                     try
                     {
-                        Log.Trace("AlgorithmManager.Run(): {0}: Applying Split for {1}", algorithm.Time, split.Symbol.ToString());
+                        Log.Debug($"AlgorithmManager.Run(): {algorithm.Time}: Applying Split for {split.Symbol}");
                         algorithm.Portfolio.ApplySplit(split);
                         // apply the split to open orders as well in raw mode, all other modes are split adjusted
                         if (_liveMode || algorithm.Securities[split.Symbol].DataNormalizationMode == DataNormalizationMode.Raw)
@@ -596,8 +593,15 @@ namespace QuantConnect.Lean.Engine
                 //Save the previous time for the sample calculations
                 _previousTime = time;
 
+                // poke the alpha handler to allow processing of events on the algorithm's main thread
+                alphas.ProcessSynchronousEvents();
+
+                // send the alpha statistics to the result handler for storage/transmit with the result packets
+                results.SetAlphaRuntimeStatistics(alphas.RuntimeStatistics);
+
                 // Process any required events of the results handler such as sampling assets, equity, or stock prices.
                 results.ProcessSynchronousEvents();
+
             } // End of ForEach feed.Bridge.GetConsumingEnumerable
 
             // stop timing the loops
@@ -616,6 +620,12 @@ namespace QuantConnect.Lean.Engine
                 Log.Error("AlgorithmManager.OnEndOfAlgorithm(): " + err);
                 return;
             }
+
+            // final processing now that the algorithm has completed
+            alphas.ProcessSynchronousEvents();
+
+            // send the final alpha statistics to the result handler for storage/transmit with the result packets
+            results.SetAlphaRuntimeStatistics(alphas.RuntimeStatistics);
 
             // Process any required events of the results handler such as sampling assets, equity, or stock prices.
             results.ProcessSynchronousEvents(forceProcess: true);
@@ -859,8 +869,10 @@ namespace QuantConnect.Lean.Engine
         {
             Log.Trace("AlgorithmManager.ProcessVolatilityHistoryRequirements(): Updating volatility models with historical data...");
 
-            foreach (var security in algorithm.Securities.Values)
+            foreach (var kvp in algorithm.Securities)
             {
+                var security = kvp.Value;
+
                 if (security.VolatilityModel != VolatilityModel.Null)
                 {
                     var historyReq = security.VolatilityModel.GetHistoryRequirements(security, algorithm.UtcTime);
